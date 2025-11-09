@@ -34,9 +34,9 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
-    "@cardano-sdk/core": "^0.46.9",
-    "@cardano-sdk/crypto": "^0.2.0",
-    "@cardano-sdk/util": "^0.15.13",
+    "@cardano-sdk/core": "^0.46.11",
+    "@cardano-sdk/crypto": "^0.4.4",
+    "@cardano-sdk/util": "^0.17.1",
     "bip39": "^3.1.0"
   }
 }

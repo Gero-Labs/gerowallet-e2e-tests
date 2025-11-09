@@ -1,7 +1,7 @@
-import { test, expect } from '../fixtures/wallet.fixture';
-import { generateMnemonic } from '../utils/cardano.utils';
-import { setupConsoleCapture } from '../utils/extension.utils';
-import { TEST_WALLET_PASSWORD, TIMEOUTS } from '../utils/test-data';
+import { test, expect } from '@fixtures/wallet.fixture';
+import { generateMnemonic } from '@utils/cardano.utils';
+import { setupConsoleCapture } from '@utils/extension.utils';
+import { TEST_WALLET_PASSWORD, TIMEOUTS } from '@utils/test-data';
 
 /**
  * Test Suite: Wallet Creation
@@ -36,46 +36,61 @@ test.describe('Wallet Creation', () => {
     // Create wallet
     await createWallet(walletName, mnemonic, TEST_WALLET_PASSWORD);
 
-    // Verify dashboard is visible
+    // Verify dashboard is visible (check for welcome message)
     await expect(
-      optionsPage.locator('[data-testid="dashboard"], .dashboard-container')
+      optionsPage.locator('text="Welcome to Gero Wallet"')
     ).toBeVisible({ timeout: TIMEOUTS.walletCreation });
 
     console.log('✅ Wallet created successfully');
   });
 
-  test('should create wallet from existing mnemonic', async ({
+  test('should restore wallet from existing mnemonic', async ({
     optionsPage,
-    createWallet
+    restoreWallet
   }) => {
     setupConsoleCapture(optionsPage);
 
-    // Use a known test mnemonic (24 words)
-    const testMnemonic = 'test walk nut penalty hip pave soap entry language right filter choice test walk nut penalty hip pave soap entry language right filter choice';
-    const walletName = 'Test Wallet - From Mnemonic';
+    // Use the user-provided test mnemonic (15 words)
+    const testMnemonic = 'manage metal also spy ignore sick trip frequent simple blade bright stool pencil neither can';
+    const walletName = 'Test Wallet - Restored';
 
-    // Create wallet
-    await createWallet(walletName, testMnemonic, TEST_WALLET_PASSWORD);
+    // Restore wallet
+    await restoreWallet(walletName, testMnemonic, TEST_WALLET_PASSWORD);
 
-    // Verify dashboard is visible
+    // Verify dashboard is visible (check for welcome message)
     await expect(
-      optionsPage.locator('[data-testid="dashboard"], .dashboard-container')
+      optionsPage.locator('text="Welcome to Gero Wallet"')
     ).toBeVisible({ timeout: TIMEOUTS.walletCreation });
 
-    console.log('✅ Wallet imported successfully');
+    console.log('✅ Wallet restored successfully');
   });
 
   test('should reject invalid mnemonic phrase', async ({ optionsPage }) => {
     setupConsoleCapture(optionsPage);
 
-    // Wait for welcome screen
-    await optionsPage.waitForSelector('[data-testid="welcome-screen"], .welcome-container', {
-      timeout: 10000
-    });
+    // Select preprod network
+    const networkSelector = optionsPage.locator('button:has-text("Cardano Mainnet")');
+    await networkSelector.click();
+    await optionsPage.waitForTimeout(1000);
+    const preprodOption = optionsPage.locator('.v-list-item:has-text("preprod"), .v-list-item:has-text("Preprod")').first();
+    if (await preprodOption.isVisible({ timeout: 2000 })) {
+      await preprodOption.click();
+      await optionsPage.waitForTimeout(1000);
+    }
 
-    // Click import wallet
-    const importButton = optionsPage.locator('button:has-text("Import Wallet"), button:has-text("Restore Wallet")');
-    await importButton.click();
+    // Click the initial "Create or Import Seed Phrase" button
+    const createImportButton = optionsPage.locator('button:has-text("Create or Import Seed Phrase")');
+    await createImportButton.waitFor({ timeout: 10000 });
+    await createImportButton.click();
+
+    // Wait for options modal
+    await optionsPage.waitForTimeout(2000);
+
+    // Click "Restore Wallet" option (it's a DIV, not a button!)
+    const restoreOption = optionsPage.locator('text="Restore Wallet"').first();
+    await restoreOption.waitFor({ timeout: 10000 });
+    await restoreOption.click();
+    await optionsPage.waitForTimeout(2000);
 
     // Enter invalid mnemonic
     const mnemonicInput = optionsPage.locator('textarea:visible, input[placeholder*="phrase" i]:visible').first();
@@ -100,12 +115,29 @@ test.describe('Wallet Creation', () => {
   test('should enforce password requirements', async ({ optionsPage }) => {
     setupConsoleCapture(optionsPage);
 
-    // Wait for welcome screen
-    await optionsPage.waitForSelector('[data-testid="welcome-screen"], .welcome-container');
+    // Select preprod network
+    const networkSelector = optionsPage.locator('button:has-text("Cardano Mainnet")');
+    await networkSelector.click();
+    await optionsPage.waitForTimeout(1000);
+    const preprodOption = optionsPage.locator('.v-list-item:has-text("preprod"), .v-list-item:has-text("Preprod")').first();
+    if (await preprodOption.isVisible({ timeout: 2000 })) {
+      await preprodOption.click();
+      await optionsPage.waitForTimeout(1000);
+    }
 
-    // Click import wallet
-    const importButton = optionsPage.locator('button:has-text("Import Wallet"), button:has-text("Restore Wallet")');
-    await importButton.click();
+    // Click the initial "Create or Import Seed Phrase" button
+    const createImportButton = optionsPage.locator('button:has-text("Create or Import Seed Phrase")');
+    await createImportButton.waitFor({ timeout: 10000 });
+    await createImportButton.click();
+
+    // Wait for options modal
+    await optionsPage.waitForTimeout(2000);
+
+    // Click "Restore Wallet" option (it's a DIV, not a button!)
+    const restoreOption = optionsPage.locator('text="Restore Wallet"').first();
+    await restoreOption.waitFor({ timeout: 10000 });
+    await restoreOption.click();
+    await optionsPage.waitForTimeout(2000);
 
     // Enter valid mnemonic
     const testMnemonic = generateMnemonic();
@@ -134,12 +166,29 @@ test.describe('Wallet Creation', () => {
   test('should require matching passwords', async ({ optionsPage }) => {
     setupConsoleCapture(optionsPage);
 
-    // Wait for welcome screen
-    await optionsPage.waitForSelector('[data-testid="welcome-screen"], .welcome-container');
+    // Select preprod network
+    const networkSelector = optionsPage.locator('button:has-text("Cardano Mainnet")');
+    await networkSelector.click();
+    await optionsPage.waitForTimeout(1000);
+    const preprodOption = optionsPage.locator('.v-list-item:has-text("preprod"), .v-list-item:has-text("Preprod")').first();
+    if (await preprodOption.isVisible({ timeout: 2000 })) {
+      await preprodOption.click();
+      await optionsPage.waitForTimeout(1000);
+    }
 
-    // Click import wallet
-    const importButton = optionsPage.locator('button:has-text("Import Wallet"), button:has-text("Restore Wallet")');
-    await importButton.click();
+    // Click the initial "Create or Import Seed Phrase" button
+    const createImportButton = optionsPage.locator('button:has-text("Create or Import Seed Phrase")');
+    await createImportButton.waitFor({ timeout: 10000 });
+    await createImportButton.click();
+
+    // Wait for options modal
+    await optionsPage.waitForTimeout(2000);
+
+    // Click "Restore Wallet" option (it's a DIV, not a button!)
+    const restoreOption = optionsPage.locator('text="Restore Wallet"').first();
+    await restoreOption.waitFor({ timeout: 10000 });
+    await restoreOption.click();
+    await optionsPage.waitForTimeout(2000);
 
     // Enter valid mnemonic
     const testMnemonic = generateMnemonic();

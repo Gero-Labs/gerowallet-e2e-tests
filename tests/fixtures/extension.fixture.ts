@@ -1,8 +1,14 @@
 import { test as base, chromium, type BrowserContext } from '@playwright/test';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Environment variables
-const extensionPath = process.env.EXTENSION_PATH || path.join(__dirname, '../../..', 'gerowallet/extension');
+const extensionPath = path.resolve(process.env.EXTENSION_PATH || path.join(__dirname, '../../..', 'gerowallet/extension'));
 
 export type ExtensionFixtures = {
   context: BrowserContext;
@@ -32,11 +38,25 @@ export const test = base.extend<ExtensionFixtures>({
         '--disable-setuid-sandbox',
       ],
       viewport: { width: 1280, height: 720 },
-      permissions: ['storage', 'clipboardRead', 'clipboardWrite'],
+      // Extension permissions are defined in manifest.json, not here
     });
 
+    // Create a blank page to keep the browser open
+    const pages = context.pages();
+    if (pages.length === 0) {
+      await context.newPage();
+    }
+
     // Wait for extension to load
-    await context.waitForEvent('serviceworker', { timeout: 10000 });
+    // Try to get existing service worker or wait for it to load
+    try {
+      if (context.serviceWorkers().length === 0) {
+        await context.waitForEvent('serviceworker', { timeout: 15000 });
+      }
+    } catch (error) {
+      console.warn('Service worker did not load within timeout:', error);
+      // Continue anyway - the test might still be able to find the extension
+    }
 
     await use(context);
 

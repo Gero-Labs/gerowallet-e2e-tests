@@ -1,9 +1,15 @@
 import { defineConfig, devices } from '@playwright/test';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 // Load environment variables
 dotenv.config();
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Path to the built GeroWallet extension
 const extensionPath = process.env.EXTENSION_PATH || path.join(__dirname, '../gerowallet/extension');
