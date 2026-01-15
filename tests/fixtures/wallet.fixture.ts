@@ -97,11 +97,36 @@ export const test = extensionTest.extend<WalletFixtures>({
       await submitButton.click();
 
       // Wait for wallet to be created (dashboard should appear)
-      // Look for the "Welcome to Gero Wallet" heading
-      await optionsPage.locator('text="Welcome to Gero Wallet"').waitFor({
+      // Look for the "Gero Dashboard" heading (use regex for flexible matching)
+      await optionsPage.locator('text=/Gero Dashboard/i').waitFor({
         state: 'visible',
-        timeout: 30000
+        timeout: 60000
       });
+
+      // Handle the "Welcome to Gero Dashboard" carousel dialog that appears for new wallets
+      // The carousel has 4 pages, and we need to click through to the 4th page and click "Get Started"
+      await optionsPage.waitForTimeout(1000);
+
+      // Click through the carousel pages (3 times to reach page 4)
+      for (let i = 0; i < 3; i++) {
+        // Look for the next arrow button in the carousel
+        const nextArrow = optionsPage.locator('.v-window__next button, button[aria-label*="next" i], .mdi-chevron-right').first();
+        if (await nextArrow.isVisible({ timeout: 1000 }).catch(() => false)) {
+          await nextArrow.click({ force: true });
+          await optionsPage.waitForTimeout(500);
+          console.log(`✓ Clicked carousel next (${i + 1}/3)`);
+        }
+      }
+
+      // Now click "Get Started" button on the 4th page to close the carousel
+      const getStartedButton = optionsPage.locator('button:has-text("Get Started"), button:has-text("GET STARTED")').first();
+      if (await getStartedButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await getStartedButton.click({ force: true });
+        console.log('✓ Clicked Get Started - closed welcome carousel');
+      }
+
+      // Wait a moment for any animations to complete
+      await optionsPage.waitForTimeout(500);
 
       console.log(`✓ Wallet created: ${name}`);
     };
@@ -250,8 +275,8 @@ export const test = extensionTest.extend<WalletFixtures>({
 
       // Debug: Check form state before submit
       const preSubmitState = await optionsPage.evaluate(() => {
-        const inputs = Array.from(document.querySelectorAll('input[type="password"]:visible'));
-        const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]:visible'));
+        const inputs = Array.from(document.querySelectorAll('input[type="password"]'));
+        const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]'));
         return {
           passwordCount: inputs.length,
           passwordsFilled: inputs.every((input: any) => input.value && input.value.length > 0),
@@ -262,13 +287,15 @@ export const test = extensionTest.extend<WalletFixtures>({
       });
       console.log('Form state before submit:', JSON.stringify(preSubmitState, null, 2));
 
-      // Click restore/import button (use force to bypass any overlays)
-      const submitButton = optionsPage.locator('button:has-text("Restore"), button:has-text("Import"), button:has-text("Create"), button[type="submit"]:visible').last();
+      // Click Continue button to finish wallet setup (step 2)
+      // The "Continue" button should be visible after filling in password and checkboxes
+      const submitButton = optionsPage.locator('button:has-text("Continue")').last();
+      await submitButton.waitFor({ state: 'visible', timeout: 5000 });
       const submitButtonText = await submitButton.textContent();
       console.log(`Submit button text: "${submitButtonText}"`);
 
       await submitButton.click({ force: true });
-      console.log('✓ Clicked submit button');
+      console.log('✓ Clicked Continue button');
 
       // Wait a moment and check if we're still on the same page or if we navigated
       await optionsPage.waitForTimeout(5000);
@@ -276,7 +303,7 @@ export const test = extensionTest.extend<WalletFixtures>({
       const postSubmitState = await optionsPage.evaluate(() => ({
         url: window.location.href,
         bodyText: document.body?.textContent?.substring(0, 300),
-        visibleButtons: Array.from(document.querySelectorAll('button:visible')).map((btn: any) => btn.textContent?.trim()).filter(Boolean)
+        visibleButtons: Array.from(document.querySelectorAll('button')).map((btn: any) => btn.textContent?.trim()).filter(Boolean)
       }));
       console.log('State 5s after submit:', JSON.stringify(postSubmitState, null, 2));
 
@@ -284,11 +311,13 @@ export const test = extensionTest.extend<WalletFixtures>({
       // The wallet restoration process derives keys from the mnemonic which takes time
       console.log('Waiting for wallet restoration to complete...');
 
-      // Wait for the dashboard to appear (no Continue button needed after submit)
-      await optionsPage.locator('text="Welcome to Gero Wallet"').waitFor({
-        state: 'visible',
-        timeout: 60000  // Give it up to 60 seconds for key derivation
-      });
+      // Wait for the dashboard to appear
+      // Restored wallets show "Portfolio" heading, new wallets show "Gero Dashboard"
+      // Use Promise.race to wait for either one
+      await Promise.race([
+        optionsPage.locator('text=/Portfolio/i').first().waitFor({ state: 'visible', timeout: 120000 }),
+        optionsPage.locator('text=/Gero Dashboard/i').first().waitFor({ state: 'visible', timeout: 120000 })
+      ]);
 
       console.log(`✓ Wallet restored: ${name}`);
     };

@@ -4,16 +4,24 @@
   "description": "End-to-end automation testing for GeroWallet Chrome extension",
   "type": "module",
   "scripts": {
-    "test": "playwright test",
-    "test:ui": "playwright test --ui",
-    "test:headed": "playwright test --headed",
-    "test:debug": "playwright test --debug",
-    "test:wallet": "playwright test tests/specs/01-wallet-creation.spec.ts tests/specs/02-wallet-login.spec.ts",
-    "test:transactions": "playwright test tests/specs/03-transaction-build.spec.ts tests/specs/04-transaction-send.spec.ts",
-    "test:staking": "playwright test tests/specs/05-staking.spec.ts",
-    "test:dapp": "playwright test tests/specs/06-dapp-connection.spec.ts",
+    "test": "playwright test --project=chromium-extension --headed",
+    "test:headless": "playwright test --project=chromium-extension",
+    "test:ui": "playwright test --project=chromium-extension --ui",
+    "test:debug": "playwright test --project=chromium-extension --debug",
+
+    "test:01-wallet-creation": "playwright test tests/specs/01-wallet-creation.spec.ts --project=chromium-extension --headed",
+    "test:02-wallet-login": "playwright test tests/specs/02-wallet-login.spec.ts --project=chromium-extension --headed",
+    "test:03-transaction-build": "playwright test tests/specs/03-transaction-build.spec.ts --project=chromium-extension --headed",
+    "test:04-transaction-send": "playwright test tests/specs/04-transaction-send.spec.ts --project=chromium-extension --headed",
+    "test:05-staking": "playwright test tests/specs/05-staking.spec.ts --project=chromium-extension --headed",
+    "test:06-dapp": "playwright test tests/specs/06-dapp-connection.spec.ts --project=chromium-extension --headed",
+
+    "test:wallet": "playwright test tests/specs/01-wallet-creation.spec.ts tests/specs/02-wallet-login.spec.ts --project=chromium-extension --headed",
+    "test:transactions": "playwright test tests/specs/03-transaction-build.spec.ts tests/specs/04-transaction-send.spec.ts --project=chromium-extension --headed",
+    "test:staking": "playwright test tests/specs/05-staking.spec.ts --project=chromium-extension --headed",
+    "test:dapp": "playwright test tests/specs/06-dapp-connection.spec.ts --project=chromium-extension --headed",
+
     "setup:wallets": "tsx scripts/setup-test-wallets.ts",
-    "build:extension": "bash scripts/build-extension.sh",
     "report": "playwright show-report"
   },
   "keywords": [

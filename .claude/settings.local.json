@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npm test:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npx playwright test:*)"
     ],
     "deny": [],
     "ask": []

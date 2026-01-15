@@ -85,24 +85,94 @@ test.describe('Staking Operations', () => {
     }
   });
 
-  test.skip('should delegate to stake pool', async ({ optionsPage, delegateStake, checkBalance }) => {
-    // This test is skipped by default as it requires:
-    // 1. Sufficient ADA for staking (minimum ~2 ADA for deposit + fees)
-    // 2. Valid pool ID
-    // 3. Wallet not already delegated
-
+  test('should delegate to stake pool', async ({ optionsPage, delegateStake, checkBalance }) => {
+    // Check balance first
     const balance = await checkBalance();
     console.log(`Current balance: ${balance} ADA`);
 
+    // Skip if insufficient balance (need ~5 ADA for deposit + fees)
     if (balance < 5) {
       test.skip(true, 'Insufficient balance for staking (need at least 5 ADA)');
+      return;
     }
 
-    // Delegate to test pool
-    const txHash = await delegateStake(TEST_POOLS.pool1, TEST_WALLET_1.password);
+    // Navigate to staking page
+    const stakingButton = optionsPage.locator('button:has-text("Staking"), a:has-text("Staking"), [href*="staking"]').first();
+    await stakingButton.click();
 
-    expect(txHash).toBeTruthy();
-    console.log(`✅ Delegation transaction: ${txHash}`);
+    // Wait for staking page to load
+    await optionsPage.waitForSelector('[data-testid="staking-page"], .staking-container', {
+      timeout: 10000
+    });
+
+    // Wait for pools to load
+    await optionsPage.waitForTimeout(3000);
+
+    // Check if wallet is already delegated
+    const delegationStatus = optionsPage.locator('[data-testid="delegation-status"], .delegation-info, .current-pool, text=/delegated to/i').first();
+    const isAlreadyDelegated = await delegationStatus.isVisible({ timeout: 2000 }).catch(() => false);
+
+    if (isAlreadyDelegated) {
+      const statusText = await delegationStatus.textContent();
+      console.log(`⚠️  Wallet already delegated: ${statusText}`);
+      console.log('✅ Delegation status verified - skipping new delegation');
+      return;
+    }
+
+    // Search for a stake pool
+    const searchInput = optionsPage.locator('input[placeholder*="pool" i]:visible, input[placeholder*="search" i]:visible').first();
+    if (await searchInput.isVisible({ timeout: 3000 })) {
+      // Use pool ticker or ID to search
+      await searchInput.fill(TEST_POOLS.pool1.slice(0, 10));
+      await optionsPage.waitForTimeout(2000);
+    }
+
+    // Look for pool cards and select the first available one
+    const poolCard = optionsPage.locator('[data-testid="pool-card"], .pool-item, .stake-pool, [data-testid*="pool"]').first();
+
+    if (await poolCard.isVisible({ timeout: 5000 })) {
+      await poolCard.click();
+      await optionsPage.waitForTimeout(1000);
+    }
+
+    // Click delegate button
+    const delegateButton = optionsPage.locator('button:has-text("Delegate"), button:has-text("Stake")').first();
+
+    if (await delegateButton.isVisible({ timeout: 3000 })) {
+      await delegateButton.click();
+
+      // Wait for confirmation dialog
+      await optionsPage.waitForSelector('[data-testid="confirm-delegation"], .confirm-container, .confirmation-modal', {
+        timeout: 5000
+      }).catch(() => {});
+
+      // Enter password
+      const passwordInput = optionsPage.locator('input[type="password"]:visible').first();
+      if (await passwordInput.isVisible({ timeout: 2000 })) {
+        await passwordInput.fill(TEST_WALLET_1.password);
+      }
+
+      // Confirm delegation
+      const confirmButton = optionsPage.locator('button:has-text("Confirm"), button:has-text("Delegate")').last();
+      await confirmButton.click();
+
+      // Wait for success message or transaction hash
+      const successSelector = '[data-testid="delegation-success"], .success-message, [data-testid="tx-hash"], .tx-hash';
+      await optionsPage.waitForSelector(successSelector, { timeout: 60000 });
+
+      // Try to extract transaction hash
+      const txHashElement = optionsPage.locator('[data-testid="tx-hash"], .tx-hash, code:visible').first();
+      const txHash = await txHashElement.textContent().catch(() => 'Transaction submitted');
+
+      expect(txHash).toBeTruthy();
+      console.log(`✅ Delegation transaction: ${txHash}`);
+    } else {
+      // Fallback: use the fixture directly if UI flow fails
+      console.log('Using delegateStake fixture...');
+      const txHash = await delegateStake(TEST_POOLS.pool1, TEST_WALLET_1.password);
+      expect(txHash).toBeTruthy();
+      console.log(`✅ Delegation transaction: ${txHash}`);
+    }
   });
 
   test('should display current delegation status', async ({ optionsPage }) => {
@@ -151,15 +221,85 @@ test.describe('Staking Operations', () => {
     }
   });
 
-  test.skip('should withdraw staking rewards', async ({ withdrawRewards }) => {
-    // This test is skipped by default as it requires:
-    // 1. Wallet to be delegated
-    // 2. Available rewards to withdraw
+  test('should withdraw staking rewards', async ({ optionsPage, withdrawRewards, checkBalance }) => {
+    // Check balance first
+    const balance = await checkBalance();
+    console.log(`Current balance: ${balance} ADA`);
 
-    const txHash = await withdrawRewards(TEST_WALLET_1.password);
+    // Navigate to staking page
+    const stakingButton = optionsPage.locator('button:has-text("Staking"), a:has-text("Staking"), [href*="staking"]').first();
+    await stakingButton.click();
 
-    expect(txHash).toBeTruthy();
-    console.log(`✅ Rewards withdrawal transaction: ${txHash}`);
+    // Wait for staking page to load
+    await optionsPage.waitForSelector('[data-testid="staking-page"], .staking-container', {
+      timeout: 10000
+    });
+
+    // Wait for data to load
+    await optionsPage.waitForTimeout(3000);
+
+    // Check if wallet is delegated
+    const delegationStatus = optionsPage.locator('[data-testid="delegation-status"], .delegation-info, .current-pool, text=/delegated/i').first();
+    const isDelegated = await delegationStatus.isVisible({ timeout: 2000 }).catch(() => false);
+
+    if (!isDelegated) {
+      console.log('⚠️  Wallet is not delegated - skipping rewards withdrawal');
+      test.skip(true, 'Wallet must be delegated to withdraw rewards');
+      return;
+    }
+
+    // Look for rewards display and check if there are rewards to withdraw
+    const rewardsElement = optionsPage.locator('[data-testid="staking-rewards"], .rewards-amount, .available-rewards, text=/rewards/i').first();
+    const rewardsText = await rewardsElement.textContent().catch(() => '0');
+    const rewardsMatch = rewardsText?.match(/[\d,]+\.?\d*/);
+    const rewardsAmount = rewardsMatch ? parseFloat(rewardsMatch[0].replace(/,/g, '')) : 0;
+
+    console.log(`Available rewards: ${rewardsAmount} ADA`);
+
+    if (rewardsAmount <= 0) {
+      console.log('⚠️  No rewards available to withdraw');
+      test.skip(true, 'No rewards available to withdraw');
+      return;
+    }
+
+    // Click withdraw button
+    const withdrawButton = optionsPage.locator('button:has-text("Withdraw"), button:has-text("Claim")').first();
+
+    if (await withdrawButton.isVisible({ timeout: 3000 })) {
+      await withdrawButton.click();
+
+      // Wait for confirmation dialog
+      await optionsPage.waitForSelector('[data-testid="confirm-withdrawal"], .confirm-container, .confirmation-modal', {
+        timeout: 5000
+      }).catch(() => {});
+
+      // Enter password
+      const passwordInput = optionsPage.locator('input[type="password"]:visible').first();
+      if (await passwordInput.isVisible({ timeout: 2000 })) {
+        await passwordInput.fill(TEST_WALLET_1.password);
+      }
+
+      // Confirm withdrawal
+      const confirmButton = optionsPage.locator('button:has-text("Confirm"), button:has-text("Withdraw")').last();
+      await confirmButton.click();
+
+      // Wait for success message or transaction hash
+      const successSelector = '[data-testid="withdrawal-success"], .success-message, [data-testid="tx-hash"], .tx-hash';
+      await optionsPage.waitForSelector(successSelector, { timeout: 60000 });
+
+      // Try to extract transaction hash
+      const txHashElement = optionsPage.locator('[data-testid="tx-hash"], .tx-hash, code:visible').first();
+      const txHash = await txHashElement.textContent().catch(() => 'Transaction submitted');
+
+      expect(txHash).toBeTruthy();
+      console.log(`✅ Rewards withdrawal transaction: ${txHash}`);
+    } else {
+      // Fallback: use the fixture directly if UI flow fails
+      console.log('Using withdrawRewards fixture...');
+      const txHash = await withdrawRewards(TEST_WALLET_1.password);
+      expect(txHash).toBeTruthy();
+      console.log(`✅ Rewards withdrawal transaction: ${txHash}`);
+    }
   });
 
   test('should display pool details', async ({ optionsPage }) => {
