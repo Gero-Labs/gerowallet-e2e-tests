@@ -84,7 +84,7 @@ test.describe('Wallet Login', () => {
     if (!hasLoginScreen) {
       // Wallet is already logged in (no lock feature or auto-login)
       // Check if dashboard is visible as alternative success condition
-      const dashboardVisible = await optionsPage.locator('text=/Dashboard/i, text=/Portfolio/i, text=/Gero Dashboard/i').first().isVisible({ timeout: 5000 }).catch(() => false);
+      const dashboardVisible = await optionsPage.locator('text=/Dashboard/i, text=/Portfolio/i, h1:has-text("Gero Dashboard")').first().isVisible({ timeout: 5000 }).catch(() => false);
 
       if (dashboardVisible) {
         console.log('✅ Wallet is already logged in (auto-login enabled)');
@@ -149,7 +149,7 @@ test.describe('Wallet Login', () => {
     setupConsoleCapture(optionsPage);
 
     // Verify dashboard is visible (wallet should be logged in from beforeEach)
-    const dashboardVisible = await optionsPage.locator('text=/Dashboard/i, text=/Portfolio/i, text=/Gero Dashboard/i').first().isVisible({ timeout: 5000 }).catch(() => false);
+    const dashboardVisible = await optionsPage.locator('text=/Dashboard/i, text=/Portfolio/i, h1:has-text("Gero Dashboard")').first().isVisible({ timeout: 5000 }).catch(() => false);
 
     if (!dashboardVisible) {
       // Try to login if not already logged in
@@ -226,7 +226,7 @@ test.describe('Wallet Login', () => {
     setupConsoleCapture(optionsPage);
 
     // Verify dashboard is visible (wallet should be logged in from beforeEach)
-    const dashboardVisible = await optionsPage.locator('text=/Dashboard/i, text=/Portfolio/i, text=/Gero Dashboard/i').first().isVisible({ timeout: 5000 }).catch(() => false);
+    const dashboardVisible = await optionsPage.locator('text=/Dashboard/i, text=/Portfolio/i, h1:has-text("Gero Dashboard")').first().isVisible({ timeout: 5000 }).catch(() => false);
 
     if (!dashboardVisible) {
       // Try to login if not already logged in
@@ -255,7 +255,7 @@ test.describe('Wallet Login', () => {
     // Verify we're on the dashboard (wallet info visible)
     // Check for "Gero Dashboard" or "Welcome" or wallet-related elements
     const hasWalletInfo = await Promise.race([
-      optionsPage.locator('text=/Gero Dashboard/i').first().isVisible({ timeout: 5000 }),
+      optionsPage.locator('h1:has-text("Gero Dashboard")').isVisible({ timeout: 5000 }),
       optionsPage.locator('text=/Welcome/i').first().isVisible({ timeout: 5000 }),
       optionsPage.locator('text=/Dashboard/i').first().isVisible({ timeout: 5000 })
     ]).catch(() => false);

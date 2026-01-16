@@ -38,7 +38,7 @@ test.describe('Wallet Creation', () => {
 
     // Verify dashboard is visible (check for Gero Dashboard heading)
     await expect(
-      optionsPage.locator('text=/Gero Dashboard/i')
+      optionsPage.locator('h1:has-text("Gero Dashboard")')
     ).toBeVisible({ timeout: TIMEOUTS.walletCreation });
 
     console.log('✅ Wallet created successfully');
@@ -60,7 +60,7 @@ test.describe('Wallet Creation', () => {
 
     // Verify dashboard is visible (restored wallets show "Portfolio" instead of "Gero Dashboard")
     const portfolioVisible = await optionsPage.locator('text=/Portfolio/i').first().isVisible({ timeout: 5000 }).catch(() => false);
-    const dashboardVisible = await optionsPage.locator('text=/Gero Dashboard/i').first().isVisible({ timeout: 5000 }).catch(() => false);
+    const dashboardVisible = await optionsPage.locator('h1:has-text("Gero Dashboard")').isVisible({ timeout: 5000 }).catch(() => false);
     expect(portfolioVisible || dashboardVisible).toBe(true);
 
     console.log('✅ Wallet restored successfully');

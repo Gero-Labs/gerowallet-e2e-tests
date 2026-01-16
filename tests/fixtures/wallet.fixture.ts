@@ -98,7 +98,7 @@ export const test = extensionTest.extend<WalletFixtures>({
 
       // Wait for wallet to be created (dashboard should appear)
       // Look for the "Gero Dashboard" heading (use regex for flexible matching)
-      await optionsPage.locator('text=/Gero Dashboard/i').waitFor({
+      await optionsPage.locator('h1:has-text("Gero Dashboard")').waitFor({
         state: 'visible',
         timeout: 60000
       });
@@ -316,7 +316,7 @@ export const test = extensionTest.extend<WalletFixtures>({
       // Use Promise.race to wait for either one
       await Promise.race([
         optionsPage.locator('text=/Portfolio/i').first().waitFor({ state: 'visible', timeout: 120000 }),
-        optionsPage.locator('text=/Gero Dashboard/i').first().waitFor({ state: 'visible', timeout: 120000 })
+        optionsPage.locator('h1:has-text("Gero Dashboard")').waitFor({ state: 'visible', timeout: 120000 })
       ]);
 
       console.log(`✓ Wallet restored: ${name}`);
